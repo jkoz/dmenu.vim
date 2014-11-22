@@ -130,7 +130,7 @@ fu! s:cmd(bang, ...) abort
   call dmenu#run(extend({ 'sink': 'e', 'options': join(args) }, opts))
 endf
 
-command! -nargs=* -complete=dir -bang DMENU call s:cmd('<bang>' == '!', <f-args>)
+command! -nargs=* -complete=dir -bang Dmenu call s:cmd('<bang>' == '!', <f-args>)
 
 let &cpo = s:cpo_save
 unlet s:cpo_save
