@@ -72,7 +72,7 @@ function! s:escape(path)
   return substitute(a:path, ' ', '\\ ', 'g')
 endfunction
 
-function! fzf#run(...) abort
+function! jmenu#run(...) abort
   let dict   = exists('a:1') ? a:1 : {}
   let temps  = { 'result': tempname() }
   let optstr = get(dict, 'options', '')
@@ -239,7 +239,7 @@ function! s:cmd(bang, ...) abort
   if !a:bang
     let opts.tmux = get(g:, 'fzf_tmux_height', s:default_tmux_height)
   endif
-  call fzf#run(extend({ 'sink': 'e', 'options': join(args) }, opts))
+  call jmenu#run(extend({ 'sink': 'e', 'options': join(args) }, opts))
 endfunction
 
 command! -nargs=* -complete=dir -bang FZF call s:cmd('<bang>' == '!', <f-args>)
