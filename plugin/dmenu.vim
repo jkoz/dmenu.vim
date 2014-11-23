@@ -20,13 +20,13 @@ endf
 fu! s:pushd(dict)
   if !empty(get(a:dict, 'dir', ''))
     let a:dict.prev_dir = getcwd()
-    execute 'chdir '.s:escape(a:dict.dir)
+    exe 'chdir '.s:escape(a:dict.dir)
   endif
 endf
 
 fu! s:popd(dict)
   if has_key(a:dict, 'prev_dir')
-    execute 'chdir '.s:escape(remove(a:dict, 'prev_dir'))
+    exe 'chdir '.s:escape(remove(a:dict, 'prev_dir'))
   endif
 endf
 " }}}
@@ -54,7 +54,7 @@ fu! dmenu#run(...) abort
   let temps  = { 'result': tempname() }
   let optstr = get(dict, 'options', '')
   try
-    let getexec = s:getexec()
+    let texec = s:getexec()
   catch
     throw v:exception
   endtry
@@ -74,7 +74,8 @@ fu! dmenu#run(...) abort
   else
     let prefix = ''
   endif
-  let command = prefix.getexec.' '.optstr.' > '.temps.result
+  let command = prefix.texec.' '.optstr.' > '.temps.result
+  "call system("echo '".command."' > /tmp/vim-test")
 
   retu s:execute(dict, command, temps)
 endf
@@ -102,7 +103,7 @@ fu! s:callback(dict, temps, cd)
         if type(a:dict.sink) == 2
           call a:dict.sink(line)
         else
-          execute a:dict.sink.' '.s:escape(line)
+          exe a:dict.sink.' '.s:escape(line)
         endif
       endfor
     endif
@@ -117,20 +118,73 @@ fu! s:callback(dict, temps, cd)
   retu lines
 endf
 " }}}
-
-fu! s:cmd(bang, ...) abort
-  let args = copy(a:000)
-  let opts = {}
-  if len(args) > 0 && isdirectory(expand(args[-1]))
-    let opts.dir = remove(args, -1)
-  endif
-  if !a:bang
-    let opts.tmux = get(g:, 'dmenu_tmux_height', s:default_tmux_height)
-  endif
-  call dmenu#run(extend({ 'sink': 'e', 'options': join(args) }, opts))
+" Dmenu {{{
+fu! s:findlist()
+  return split(system("find * ! -path \"*/\.*\" -type f "), '\n')
+endf
+comm! -nargs=* -complete=dir -bang  Dmenu call dmenu#run({'source':s:findlist(), 'sink': 'e'})
+nn <silent> <c-p> :Dmenu<CR>
+"}}}
+" DmenuFM {{{
+fu! s:dirlist()
+  return split(system("find * ! -path \"*/\.*\" -type f "), '\n')
+endf
+comm! -nargs=* -complete=dir -bang DmenuFM call dmenu#run({'source':s:dirlist(), 'sink': 'e'})
+nn <silent> <leader>f :DmenuFM<CR>
+"}}}
+"DmenuBuffer {{{
+fu! s:buflist()
+  redir => ls
+  silent ls
+  redir END
+  return split(ls, '\n')
 endf
 
-command! -nargs=* -complete=dir -bang Dmenu call s:cmd('<bang>' == '!', <f-args>)
+fu! s:bufopen(line)
+  exe 'buffer '.matchstr(a:line, '^[ 0-9]*')
+endf
+
+comm! DmenuBuffer call dmenu#run({'source':reverse(s:buflist()),'sink':function('s:bufopen')})
+nn <silent> <Leader>z :DmenuBuffer<CR>
+"}}}
+" DmenuMRU {{{
+comm! DmenuMRU call dmenu#run({'source':v:oldfiles, 'sink' : 'e ','options' : '-p MRU:'})
+nn <silent> <Leader>m :DmenuMRU<CR>
+" }}}
+" DmenuBufTag {{{
+fu! s:buftaglist()
+  let ret= system("ctags -f - --sort=no --excmd=pattern --fields=nKs '" . expand("%")."' | awk 'sub(/line/,\"\") {print $1  $NF}'")
+  retu split(ret, '\n')
+endf
+
+fu! s:buftagopen(line)
+  cal cursor(system("echo '".a:line."' | awk -F ':' '{print $NF}'"), 1)
+endf
+
+comm! DmenuBufTag call dmenu#run({'source':s:buftaglist(), 'sink' :function('s:buftagopen'),'options' : '-p Ctags:',})
+nn <silent> <Leader>o :DmenuBufTag<CR>
+" }}}
+" DmenuHistory {{{
+fu! s:historylist()
+  let l:num = histnr('cmd')
+  let l:line = histget('cmd', l:num)
+  let l:lines = []
+  while l:num >= 1
+    if l:line != ''
+      call add(l:lines, l:line)
+    endif
+    let l:num = l:num-1
+    let l:line = histget('cmd', l:num)
+  endwhile
+  return l:lines
+endf
+fu! s:historyopen(line)
+  call histadd('cmd', a:line)
+  silent exe ':' . a:line
+endf
+comm! DmenuHistory call dmenu#run({'source':s:historylist(), 'sink' :function('s:historyopen'),'options' : '-p History:',})
+nn <silent> <Leader>q :DmenuHistory<CR>
+" }}}
 
 let &cpo = s:cpo_save
 unlet s:cpo_save
