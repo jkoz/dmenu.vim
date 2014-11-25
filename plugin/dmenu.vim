@@ -5,163 +5,121 @@
 " Version:       1.0
 " =============================================================================
 
-let s:cpo_save = &cpo
-set cpo&vim
+if exists('loaded_dmenu') | finish | en
 
-" Utilities {{{
-fu! s:shellesc(arg)
+let loaded_dmenu=1
+
+let s:cpo_save = &cpo
+se cpo&vim
+
+let s:dmenu_default_backend = 'dmenu --smart'
+
+" Main {{{
+" shellesc {{{
+fu! s:shellesc(arg) 
   retu '"'.substitute(a:arg, '"', '\\"', 'g').'"'
-endf
+endf " }}}
 
 fu! s:escape(path)
   retu substitute(a:path, ' ', '\\ ', 'g')
 endf
 
-fu! s:pushd(dict)
-  if !empty(get(a:dict, 'dir', ''))
-    let a:dict.prev_dir = getcwd()
-    exe 'chdir '.s:escape(a:dict.dir)
-  endif
-endf
-
-fu! s:popd(dict)
-  if has_key(a:dict, 'prev_dir')
-    exe 'chdir '.s:escape(remove(a:dict, 'prev_dir'))
-  endif
-endf
-" }}}
-" Execution {{{
-
-fu! s:getexec()
-  if !exists('s:exec')
-    call system('type dmenu')
-    if v:shell_error
-      throw 'dmenu not found'
-    else
-      let s:exec = 'dmenu --smart'
-    endif
-    retu s:getexec()
-  elseif empty(s:exec)
-    unlet s:exec
-    throw 'backend dmenu not found'
-  else
-    retu s:exec
-  endif
-endf
-
 fu! dmenu#run(...) abort
   let dict   = exists('a:1') ? a:1 : {}
-  let temps  = { 'result': tempname() }
+  let ret = { 'result': tempname() }
   let optstr = get(dict, 'options', '')
-  try
-    let texec = s:getexec()
-  catch
-    throw v:exception
-  endtry
+
+  if has_key(dict, 'handler')
+    cal dict.handler(line)
+  en
 
   if has_key(dict, 'source')
-    let source = dict.source
-    let type = type(source)
-    if type == 1
-      let prefix = source.'|'
-    elseif type == 3
-      let temps.input = tempname()
-      call writefile(source, temps.input)
-      let prefix = 'cat '.s:shellesc(temps.input).'|'
-    else
+    let data = dict.source
+    let type = type(data)
+
+    if type == 1 " string
+      let prefix = data.'|'
+    elsei type == 3 " list
+      let ret.input = tempname()
+      cal writefile(data, ret.input)
+      let prefix = 'cat '.s:shellesc(ret.input).'|'
+    el
       throw 'Invalid source type'
-    endif
-  else
+    en
+  el
     let prefix = ''
-  endif
-  let command = prefix.texec.' '.optstr.' > '.temps.result
-  "call system("echo '".command."' > /tmp/vim-test")
+  en
 
-  retu s:execute(dict, command, temps)
-endf
+  " backend
+  if has_key(dict, 'backend')
+    let texec = dict.backend
+  el
+    let texec = get(g:, 'dmenu_backend', s:dmenu_default_backend)
+  en
 
+  cal substitute(system(prefix.texec.' '.optstr.' > '.ret.result), '\n$', '', '')
 
-fu! s:execute(dict, command, temps)
-  call s:pushd(a:dict)
-
-  let command = a:command
-  call substitute(system(command), '\n$', '', '')
-
-  retu s:callback(a:dict, a:temps, 1)
-endf
-
-
-fu! s:callback(dict, temps, cd)
-  if !filereadable(a:temps.result)
+  if !filereadable(ret.result)
     let lines = []
-  else
-    if a:cd | call s:pushd(a:dict) | endif
-
-    let lines = readfile(a:temps.result)
-    if has_key(a:dict, 'sink')
+  el
+    let lines = readfile(ret.result)
+    if has_key(dict, 'sink')
       for line in lines
-        if type(a:dict.sink) == 2
-          call a:dict.sink(line)
-        else
-          exe a:dict.sink.' '.s:escape(line)
-        endif
-      endfor
-    endif
-  endif
+        if type(dict.sink) == 2 "function
+          cal dict.sink(line)
+        el
+          exe dict.sink.' '.s:escape(line)
+        en
+      endfo
+    en
+  en
 
-  for tf in values(a:temps)
-    silent! call delete(tf)
-  endfor
-
-  call s:popd(a:dict)
+  for tmp in values(ret) | sil! cal delete(tmp) | endfo
 
   retu lines
 endf
 " }}}
+" Extensions {{{
 " Dmenu {{{
-fu! s:findlist()
-  return split(system("find * ! -path \"*/\.*\" -type f "), '\n')
-endf
-comm! -nargs=* -complete=dir -bang  Dmenu call dmenu#run({'source':s:findlist(), 'sink': 'e'})
+comm! -nargs=* -complete=dir -bang  Dmenu cal dmenu#run({'sink': 'e', 'backend': 'dmenu --smart  find'})
 nn <silent> <c-p> :Dmenu<CR>
 "}}}
 " DmenuFM {{{
-fu! s:dirlist()
-  return split(system("find * ! -path \"*/\.*\" -type f "), '\n')
-endf
-comm! -nargs=* -complete=dir -bang DmenuFM call dmenu#run({'source':s:dirlist(), 'sink': 'e'})
+comm! -nargs=* -complete=dir -bang DmenuFM cal dmenu#run({'sink': 'e', 'backend': 'dmenu --smart  recursive'})
 nn <silent> <leader>f :DmenuFM<CR>
 "}}}
 "DmenuBuffer {{{
 fu! s:buflist()
   redir => ls
-  silent ls
+  sil ls
   redir END
-  return split(ls, '\n')
+  retu split(ls, '\n')
 endf
-
 fu! s:bufopen(line)
   exe 'buffer '.matchstr(a:line, '^[ 0-9]*')
 endf
 
-comm! DmenuBuffer call dmenu#run({'source':reverse(s:buflist()),'sink':function('s:bufopen')})
+comm! DmenuBuffer cal dmenu#run({'source':s:buflist(),'sink': function('s:bufopen')})
 nn <silent> <Leader>z :DmenuBuffer<CR>
 "}}}
 " DmenuMRU {{{
-comm! DmenuMRU call dmenu#run({'source':v:oldfiles, 'sink' : 'e ','options' : '-p MRU:'})
+fu! s:mrulist()
+  sil exe ":rviminfo!"
+  let retl = copy(v:oldfiles)
+  let regrexes = substitute(&wig, "*", "\.*", "g")
+  let reglist = split(regrexes, ',') + map(split(&rtp, ','), 'v:val . "\.*"')
+  for regrex in reglist | cal filter(retl, 'v:val !~# regrex') | endfo
+  retu retl
+endf
+comm! DmenuMRU cal dmenu#run({'source': s:mrulist(), 'sink' : 'e','options' : '-p MRU:'})
 nn <silent> <Leader>m :DmenuMRU<CR>
 " }}}
 " DmenuBufTag {{{
-fu! s:buftaglist()
-  let ret= system("ctags -f - --sort=no --excmd=pattern --fields=nKs '" . expand("%")."' | awk 'sub(/line/,\"\") {print $1  $NF}'")
-  retu split(ret, '\n')
-endf
-
 fu! s:buftagopen(line)
   cal cursor(system("echo '".a:line."' | awk -F ':' '{print $NF}'"), 1)
 endf
 
-comm! DmenuBufTag call dmenu#run({'source':s:buftaglist(), 'sink' :function('s:buftagopen'),'options' : '-p Ctags:',})
+comm! DmenuBufTag cal dmenu#run({'sink' :function('s:buftagopen'), 'backend': 'dmenu --smart  tags ' . expand("%")})
 nn <silent> <Leader>o :DmenuBufTag<CR>
 " }}}
 " DmenuHistory {{{
@@ -171,20 +129,21 @@ fu! s:historylist()
   let l:lines = []
   while l:num >= 1
     if l:line != ''
-      call add(l:lines, l:line)
-    endif
+      cal add(l:lines, l:line)
+    en
     let l:num = l:num-1
     let l:line = histget('cmd', l:num)
   endwhile
-  return l:lines
+  retu l:lines
 endf
 fu! s:historyopen(line)
-  call histadd('cmd', a:line)
-  silent exe ':' . a:line
+  cal histadd('cmd', a:line)
+  sil exe ':' . a:line
 endf
-comm! DmenuHistory call dmenu#run({'source':s:historylist(), 'sink' :function('s:historyopen'),'options' : '-p History:',})
+comm! DmenuHistory cal dmenu#run({'source':s:historylist(), 'sink' :function('s:historyopen'),'options' : '-p History:',})
 nn <silent> <Leader>q :DmenuHistory<CR>
 " }}}
+"}}}
 
 let &cpo = s:cpo_save
 unlet s:cpo_save
