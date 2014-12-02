@@ -152,12 +152,11 @@ endf " }}}
 " }}}
 " DmenuBuffer {{{
 fu! dmenu#buflist() "{{{
-  redir => ls
-  sil ls
-  redir END
-  let lst = split(ls, '\n')
-  cal s:debug(ls)
-  retu lst
+  redir => bufstr | sil ls | redir END | cal s:debug(bufstr)
+  let lst = split(bufstr, '\n')
+  let lst1 = filter(copy(lst), 'v:val !~ "^  [1-9+] [%#]"') " remove current buffer and last modified buffer
+  let lst2 = filter(copy(lst), 'v:val =~ "^  [1-9+] #"') " remove all expect last modified buffer
+  retu lst2 + lst1 " put last modified buffer at the begining of the list
 endf "}}}
 fu! dmenu#bufopen(line) " {{{
   exe 'buffer '.matchstr(a:line, '^[ 0-9]*')
