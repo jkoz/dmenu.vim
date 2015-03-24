@@ -17,6 +17,7 @@ comm! DmenuBufTag  cal dmenu#DmenuBufTag()
 comm! DmenuMRU     cal dmenu#DmenuMRU()
 comm! DmenuHistory cal dmenu#DmenuHistory()
 comm! DmenuBuffer  cal dmenu#DmenuBuffer()
+comm! DmenuLines cal dmenu#DmenuLines()
 
 nn <silent> <c-p>     :Dmenu<CR>
 nn <silent> <leader>f :DmenuFM<CR>
@@ -24,3 +25,4 @@ nn <silent> <Leader>z :DmenuBuffer<CR>
 nn <silent> <Leader>m :DmenuMRU<CR>
 nn <silent> <Leader>o :DmenuBufTag<CR>
 nn <silent> <Leader>q :DmenuHistory<CR>
+nn <silent> <Leader>l :DmenuLines<CR>
