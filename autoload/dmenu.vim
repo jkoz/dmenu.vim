@@ -118,7 +118,7 @@ fu! dmenu#buftagopen(line)
   cal cursor(split(a:line, '  ')[0] + 1, 1)
 endf
 
-fu! dmenu#DmenuBufTag() "{{{
+fu! dmenu#DmenuBufTag()
   cal tagbar#OpenWindow('fjc')
   cal tagbar#SetFoldLevel(99, 1)
 
@@ -128,7 +128,7 @@ fu! dmenu#DmenuBufTag() "{{{
   \ })
 
   cal feedkeys("\<CR>")
-endf "}}}
+endf
 "}}}
 
 " DmenuLines {{{
@@ -160,7 +160,10 @@ endf
 " DmenuHistory {{{
 
 fu! dmenu#historylist()
-  redir => histstr | sil hist | redir END | retu reverse(map(split(histstr, '\n')[2:], 'substitute(v:val, ".*[0-9]*  ", "", "g")'))
+  redir => histstr
+  sil hist
+  redir END
+  retu reverse(map(split(histstr, '\n')[2:], 'substitute(v:val, ".*[0-9]*  ", "", "g")'))
 endf
 
 fu! dmenu#historyopen(line)
@@ -183,15 +186,16 @@ fu! dmenu#buflist()
   let lst = split(bufstr, '\n')
   let lst1 = filter(copy(lst), 'v:val !~ "^  [1-9+] [%#]"') " remove current buffer and last modified buffer
   let lst2 = filter(copy(lst), 'v:val =~ "^  [1-9+] #"') " remove all expect last modified buffer
-  retu lst2 + lst1 " put last modified buffer at the begining of the list
-endf
 
-fu! dmenu#bufopen(line)
-  exe 'buffer '.matchstr(a:line, '^[ 0-9]*')
+  " put last modified buffer at the begining of the list
+  retu map(lst2 + lst1, 'substitute(substitute(v:val, "\"[ ]*line [0-9]*$", "", "g"), ".*\"", "", "g")')
 endf
 
 fu! dmenu#DmenuBuffer()
-  cal dmenu#run({'source': dmenu#buflist(),'handler': function('dmenu#bufopen')})
+  cal dmenu#run({
+    \ 'source': dmenu#buflist(),
+    \ 'handler': 'e'
+    \ })
 endf
 
 " }}}
