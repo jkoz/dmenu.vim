@@ -1,6 +1,6 @@
 Fuzzy finder for vim used configurable backend such fzf, slmenu, dmenu, rofi etc.
 
-![](https://raw.githubusercontent.com/jkoz/i/vim-fzf.gif)
+![](https://raw.github.com/jkoz/i/master/vim-fzf.gif)
 
 ## Dependencies
 
