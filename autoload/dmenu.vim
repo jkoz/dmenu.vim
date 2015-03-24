@@ -60,6 +60,7 @@ fu! dmenu#run(...) abort
   en
 
   let cmd = prefix.get(context, 'backend', g:dmenu_backend).' '.optstr.' > '.choice.result
+  cal s:debug(cmd)
   if exists('g:dmenu_launcher') && !empty(g:dmenu_launcher)
     cal system(g:dmenu_launcher.' "'.cmd.'"')
   el
@@ -94,6 +95,7 @@ endf
 
 fu! dmenu#Dmenu(...) abort
   cal dmenu#run({
+  \ 'options': '',
   \ 'handler': 'e',
   \ 'backend': 'dm find '.(len(a:000) > 0 ? join(copy(a:000)) : '.')
   \ })
@@ -105,6 +107,7 @@ endf
 
 fu! dmenu#DmenuFM(...) abort
   cal dmenu#run({
+  \ 'options': '',
   \ 'handler': 'e',
   \ 'backend': 'dm recursive '.(len(a:000) > 0 ? join(copy(a:000)) : '.')
   \ })
@@ -124,7 +127,7 @@ fu! dmenu#DmenuBufTag()
 
   cal dmenu#run({
   \ 'handler': function('dmenu#buftagopen'),
-  \ 'source': map(getbufline(bufname("__Tagbar__"), 1, "$"), 'v:key."  ".v:val')
+  \ 'source': map(getbufline(bufname("__Tagbar__"), 1, "$")[2:], 'v:key."  ".v:val')
   \ })
 
   cal feedkeys("\<CR>")
@@ -195,6 +198,26 @@ fu! dmenu#DmenuBuffer()
   cal dmenu#run({
     \ 'source': dmenu#buflist(),
     \ 'handler': 'e'
+    \ })
+endf
+
+" }}}
+
+" DmenuMarks {{{
+
+fu! dmenu#marklist()
+  redir => marksstr | sil marks | redir END
+  retu split(marksstr, '\n')[1:]
+endf
+
+fu! dmenu#markopen(line)
+  exe 'normal! `'. matchstr(a:line, '^ \zs.')
+endf
+
+fu! dmenu#DmenuMarks()
+  cal dmenu#run({
+    \ 'source': dmenu#marklist(),
+    \ 'handler': function('dmenu#markopen')
     \ })
 endf
 

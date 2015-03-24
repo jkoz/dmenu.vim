@@ -7,22 +7,15 @@
 
 if exists('loaded_dmenu') | finish | en
 
-comm! DmenuDebug cal dmenu#startdebug()
+com! DmenuDebug cal dmenu#startdebug()
 
 
-comm! -nargs=* -complete=dir Dmenu   cal dmenu#Dmenu(<f-args>)
-comm! -nargs=* -complete=dir DmenuFM cal dmenu#DmenuFM(<f-args>)
+com! -nargs=* -complete=dir Dmenu   cal dmenu#Dmenu(<f-args>)
+com! -nargs=* -complete=dir DmenuFM cal dmenu#DmenuFM(<f-args>)
 
-comm! DmenuBufTag  cal dmenu#DmenuBufTag()
-comm! DmenuMRU     cal dmenu#DmenuMRU()
-comm! DmenuHistory cal dmenu#DmenuHistory()
-comm! DmenuBuffer  cal dmenu#DmenuBuffer()
-comm! DmenuLines cal dmenu#DmenuLines()
-
-nn <silent> <c-p>     :Dmenu<CR>
-nn <silent> <leader>f :DmenuFM<CR>
-nn <silent> <Leader>z :DmenuBuffer<CR>
-nn <silent> <Leader>m :DmenuMRU<CR>
-nn <silent> <Leader>o :DmenuBufTag<CR>
-nn <silent> <Leader>q :DmenuHistory<CR>
-nn <silent> <Leader>l :DmenuLines<CR>
+com! DmenuBufTag  cal dmenu#DmenuBufTag()
+com! DmenuMRU     cal dmenu#DmenuMRU()
+com! DmenuHistory cal dmenu#DmenuHistory()
+com! DmenuBuffer  cal dmenu#DmenuBuffer()
+com! DmenuLines cal dmenu#DmenuLines()
+com! DmenuMarks cal dmenu#DmenuMarks()
