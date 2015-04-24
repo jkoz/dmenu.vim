@@ -118,7 +118,7 @@ endf
 " DmenuBufTag {{{
 
 fu! dmenu#buftagopen(line)
-  cal cursor(split(a:line, '  ')[0] + 1, 1)
+  cal cursor(split(a:line, '  ')[0] + 3, 1)
 endf
 
 fu! dmenu#DmenuBufTag()
